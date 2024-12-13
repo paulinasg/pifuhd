@@ -24,6 +24,7 @@ def mark_overlapping_points(pcd1, pcd2, threshold):
     distances1 = compute_chamfer_distance(pcd1, pcd2)
     distances2 = compute_chamfer_distance(pcd2, pcd1)
     print(distances1)
+    print(distances2)
     
     colors1 = np.array([[1, 0, 0] if d < threshold else [1, 1, 1] for d in distances1])
     colors2 = np.array([[1, 0, 0] if d < threshold else [0, 0, 1] for d in distances2])
@@ -42,7 +43,7 @@ def scale_point_cloud(pcd, scale_factor):
     pcd.scale(scale_factor, center=pcd.get_center())
     return pcd
 
-def main(ply_file1, ply_file2, output_file, threshold=400):
+def main(ply_file1, ply_file2, output_file, threshold=5):
     pcd1 = load_point_cloud(ply_file1)
     pcd2 = load_point_cloud(ply_file2)
     
