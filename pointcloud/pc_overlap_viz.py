@@ -5,6 +5,11 @@
 import open3d as o3d
 import numpy as np
 
+def center_point_cloud(pcd):
+    centroid = pcd.get_center()
+    pcd.translate(-centroid)
+    return pcd
+
 def load_point_cloud(file_path):
     pcd = o3d.io.read_point_cloud(file_path)
     return pcd
@@ -32,6 +37,20 @@ def mark_overlapping_points(pcd1, pcd2, threshold):
     pcd1.colors = o3d.utility.Vector3dVector(colors1)
     pcd2.colors = o3d.utility.Vector3dVector(colors2)
 
+def align_point_clouds(pcd1, pcd2):
+    threshold = 0.02  # distance threshold for ICP
+    trans_init = np.identity(4)  # initial transformation
+    center_point_cloud(pcd1)
+    center_point_cloud(pcd2)
+
+    reg_p2p = o3d.pipelines.registration.registration_icp(
+        pcd1, pcd2, threshold, trans_init,
+        o3d.pipelines.registration.TransformationEstimationPointToPoint()
+    )
+
+    pcd1.transform(reg_p2p.transformation)
+    return pcd1, pcd2
+
 def combine_point_clouds(pcd1, pcd2):
     combined_pcd = pcd1 + pcd2
     return combined_pcd
@@ -43,23 +62,25 @@ def scale_point_cloud(pcd, scale_factor):
     pcd.scale(scale_factor, center=pcd.get_center())
     return pcd
 
-def main(ply_file1, ply_file2, output_file, threshold=5):
+def main(ply_file1, ply_file2, output_file, threshold=0.01):
     pcd1 = load_point_cloud(ply_file1)
     pcd2 = load_point_cloud(ply_file2)
     
-    # Compute bounding boxes
-    bbox1 = pcd1.get_axis_aligned_bounding_box()
-    bbox2 = pcd2.get_axis_aligned_bounding_box()
+    # # Compute bounding boxes
+    # bbox1 = pcd1.get_axis_aligned_bounding_box()
+    # bbox2 = pcd2.get_axis_aligned_bounding_box()
     
-    # Determine scaling factor
-    scale_factor = min(bbox1.get_extent()) / max(bbox2.get_extent())
+    # # Determine scaling factor
+    # scale_factor = min(bbox1.get_extent()) / max(bbox2.get_extent())
     
-    # Scale the larger point cloud
-    if bbox1.volume() < bbox2.volume():
-        pcd2 = scale_point_cloud(pcd2, scale_factor)
-    else:
-        pcd1 = scale_point_cloud(pcd1, scale_factor)
+    # # Scale the larger point cloud
+    # if bbox1.volume() < bbox2.volume():
+    #     pcd2 = scale_point_cloud(pcd2, scale_factor)
+    # else:
+    #     pcd1 = scale_point_cloud(pcd1, scale_factor)
     
+    pcd1, pcd2 = align_point_clouds(pcd1, pcd2)
+
     mark_overlapping_points(pcd1, pcd2, threshold)
     
     combined_pcd = combine_point_clouds(pcd1, pcd2)
